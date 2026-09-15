@@ -1069,6 +1069,37 @@ body {
   box-shadow: 0 8px 22px rgb(3 7 18 / 0.4);
 }
 
+/*
+ * 결과 화면 오른쪽 위에 고정된 유의사항 버튼.
+ *
+ * 화면은 가운데 450px 폭으로 놓이므로, 넓은 화면에서도 그 폭의 오른쪽 모서리에
+ * 붙도록 오른쪽 여백을 계산한다. 가운데 안내 팝업(z-index 50)보다는 아래에 둔다.
+ */
+.notice-fab {
+  position: fixed;
+  top: max(0.85rem, env(safe-area-inset-top));
+  right: max(0.85rem, calc((100vw - 450px) / 2 + 0.85rem));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 2.3rem;
+  border: 1px solid rgb(240 215 168 / 0.45);
+  border-radius: 999px;
+  background: rgb(7 11 24 / 0.82);
+  padding: 0 0.8rem;
+  color: #f0d7a8;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgb(2 5 16 / 0.45);
+  backdrop-filter: blur(10px);
+}
+
+.notice-fab svg {
+  width: 1rem;
+  height: 1rem;
+}
+
 /* 풀이를 다 본 뒤 화면 가운데 뜨는 재접속 안내 */
 
 .revisit-overlay {
@@ -1130,6 +1161,22 @@ body {
   font-weight: 850;
   line-height: 1.5;
   word-break: keep-all;
+}
+
+/* 입금 계좌. 길게 눌러 복사하기 쉽도록 한 줄로, 눈에 띄게 둔다. */
+.revisit-account {
+  margin-top: 0.9rem;
+  border: 1px solid rgb(240 215 168 / 0.35);
+  border-radius: 10px;
+  background: rgb(240 215 168 / 0.08);
+  padding: 0.65rem 0.75rem;
+  color: #f0d7a8;
+  font-size: 1.02rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  user-select: all;
 }
 
 @keyframes revisit-fade {

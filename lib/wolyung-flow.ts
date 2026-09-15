@@ -147,8 +147,13 @@ export const RECRUITMENT_CLOSED_COPY = {
  */
 export const MATCH_REVISIT_COPY = {
   title: '매칭 결과 안내',
-  message: '9/18 12:00에 재접속하셔야 매칭결과 확인가능해요!',
+  message:
+    '9/17 23:59 전에 아래 계좌로 입금하시고 9/18 12:00 에 재접속 하셔야 매칭결과 확인가능해요!',
+  /** 입금받을 계좌. 문구의 "아래 계좌" 가 가리키는 줄이라 본문 바로 아래에 따로 크게 보인다. */
+  account: '🏦 토스뱅크 1002-7620-8460',
   confirmLabel: '확인했어요',
+  /** 결과 화면 오른쪽 위에 고정된, 이 안내를 다시 여는 버튼. */
+  noticeButtonLabel: '유의사항',
 } as const;
 
 export const READING_POINTS = [

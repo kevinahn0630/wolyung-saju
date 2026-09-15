@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   Circle,
   Heart,
+  Info,
   MoonStar,
   Sparkles,
 } from 'lucide-react';
@@ -1036,6 +1037,26 @@ function ResultScreen({
   return (
     <div className="result-page relative min-h-dvh">
       {/*
+        입금·재접속 안내를 언제든 다시 볼 수 있는 버튼. 스크롤해도 오른쪽 위에 남는다.
+        매칭 대상이 아닌 사람(저장 실패·마감 거절)에게는 입금 안내가 맞지 않아 숨긴다.
+      */}
+      {revisitEligible && (
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          onClick={() => {
+            // 직접 연 뒤에는 끝까지 스크롤했을 때 자동으로 또 뜨지 않게 한다.
+            revisitShown.current = true;
+            setRevisitOpen(true);
+          }}
+          className="notice-fab"
+        >
+          <Info aria-hidden="true" />
+          {MATCH_REVISIT_COPY.noticeButtonLabel}
+        </button>
+      )}
+
+      {/*
         배경 이미지는 화면 위쪽 띠 안에만 둔다. 문서 전체 높이에 걸친 블러 레이어는
         스크롤할 때마다 다시 합성돼서 모바일에서 눈에 띄게 버벅인다.
       */}
@@ -1156,6 +1177,7 @@ function ResultScreen({
             <p id="revisit-message" className="revisit-message">
               {MATCH_REVISIT_COPY.message}
             </p>
+            <p className="revisit-account">{MATCH_REVISIT_COPY.account}</p>
             <Button
               ref={revisitConfirmRef}
               type="button"
