@@ -21,6 +21,10 @@ type SubmissionRow = {
   gender: string;
   university: string | null;
   department: string | null;
+  student_id: string | null;
+  refund_bank: string | null;
+  /** 서버가 계좌번호 뒤 4자리만 내려보낸다. 전체 번호는 CSV 에만 있다. */
+  refund_account_last4: string | null;
   year_pillar: string;
   month_pillar: string;
   day_pillar: string;
@@ -224,6 +228,8 @@ export default function AdminPage() {
                     <th scope="col">성별</th>
                     <th scope="col">학교</th>
                     <th scope="col">학과</th>
+                    <th scope="col">학번</th>
+                    <th scope="col">환불 계좌</th>
                     <th scope="col">생년월일</th>
                     <th scope="col">태어난 시간</th>
                     <th scope="col">사주</th>
@@ -244,6 +250,12 @@ export default function AdminPage() {
                           : '—'}
                       </td>
                       <td>{row.department ?? '—'}</td>
+                      <td>{row.student_id ?? '—'}</td>
+                      <td>
+                        {row.refund_bank
+                          ? `${row.refund_bank} ····${row.refund_account_last4 ?? ''}`
+                          : '—'}
+                      </td>
                       <td>{row.birth_date}</td>
                       <td>{row.hour_known ? row.birth_time : '모름'}</td>
                       <td className="admin-pillars">

@@ -32,7 +32,9 @@ const MAX_EXPORT_ROWS = 10_000;
 /** 화면용. 매칭에 쓰지 않는 열은 뺀다. */
 const SELECT_PAGE_SQL = `
 SELECT instagram, name, birth_date, birth_time, hour_known, gender,
-       university, department,
+       university, department, student_id, refund_bank,
+       -- 목록 화면에는 계좌번호 뒤 4자리만 내려보낸다. 전체 번호는 CSV 에서만 나간다.
+       substr(refund_account, -4) AS refund_account_last4,
        year_pillar, month_pillar, day_pillar, hour_pillar, element_counts,
        consent_version, created_at, updated_at
 FROM submissions
@@ -42,7 +44,7 @@ LIMIT ? OFFSET ?`;
 /** 내보내기용. 나중에 매칭을 돌릴 때 아쉬운 열이 없도록 전부 담는다. */
 const SELECT_EXPORT_SQL = `
 SELECT instagram, name, birth_date, calendar_type, birth_time, hour_known,
-       gender, university, department,
+       gender, university, department, student_id, refund_bank, refund_account,
        year_pillar, month_pillar, day_pillar, hour_pillar,
        element_counts, consent_version, consent_agreed_at, created_at, updated_at
 FROM submissions
@@ -60,6 +62,9 @@ type SubmissionRow = {
   gender: string;
   university: string | null;
   department: string | null;
+  student_id: string | null;
+  refund_bank: string | null;
+  refund_account_last4: string | null;
   year_pillar: string;
   month_pillar: string;
   day_pillar: string;

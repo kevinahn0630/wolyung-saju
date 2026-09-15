@@ -19,7 +19,9 @@ import { CONSENT_COPY, CONTACT_COPY } from '@/lib/consent';
 import { buildLoveReading } from '@/lib/love-reading';
 import { calculateSaju, type SajuChart } from '@/lib/saju/pillars';
 import {
+  isValidAccountNumber,
   isValidInstagram,
+  isValidStudentId,
   normalizeInstagram,
   parseBirthTime,
   parseBirthday,
@@ -33,11 +35,16 @@ import {
   FORM_STEPS,
   HERO_COPY,
   HERO_FOOTER_POINTS,
+  MATCH_REVISIT_COPY,
   READING_POINTS,
+  RECRUITMENT_CLOSED_COPY,
+  RECRUITMENT_CLOSES_AT,
   RECRUITMENT_SCHEDULE,
+  REFUND_BANKS,
   RESULT_COPY,
   UNIVERSITIES,
   getErrorMessage,
+  isRecruitmentClosed,
   type Direction,
   type FlowScreen,
   type FormStep,
@@ -54,6 +61,9 @@ const EMPTY_DRAFT: SubmissionDraft = {
   university: '',
   department: '',
   instagram: '',
+  studentId: '',
+  refundBank: '',
+  refundAccount: '',
   consentAgreed: false,
 };
 
@@ -121,27 +131,63 @@ export default function Home() {
     };
   }, []);
 
+  const [recruitmentClosed, setRecruitmentClosed] = useState(() =>
+    isRecruitmentClosed(),
+  );
+  // 기기 시계가 틀려 화면은 열려 있었지만 서버가 마감으로 거절한 경우.
+  const [submissionClosed, setSubmissionClosed] = useState(false);
+
+  // 첫 화면을 열어 둔 채 마감 시각을 넘기면 버튼도 그 순간 닫히도록 타이머를 건다.
+  useEffect(() => {
+    if (recruitmentClosed) {
+      return;
+    }
+
+    const remaining = RECRUITMENT_CLOSES_AT - Date.now();
+
+    // setTimeout 은 약 24.8일을 넘는 지연을 곧바로 실행해 버린다. 그보다 멀면
+    // 그 사이의 새로고침에 맡긴다.
+    if (remaining > 2_147_483_647) {
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setRecruitmentClosed(true),
+      Math.max(remaining, 0),
+    );
+
+    return () => window.clearTimeout(timer);
+  }, [recruitmentClosed]);
+
   /**
    * 마지막 단계에서 부른다. 사주를 세우고 저장을 걸어 둔 뒤 로딩 화면으로 넘어간다.
-   * 입력이 온전하지 않으면 false 를 돌려주어 폼이 오류를 띄우게 한다.
+   * 입력이 온전하지 않으면 'invalid', 모집이 끝났으면 'closed' 를 돌려주어 폼이
+   * 알맞은 오류를 띄우게 한다.
    */
   const beginReading = useCallback(
-    (honeypot: string): boolean => {
+    (honeypot: string): 'ok' | 'invalid' | 'closed' => {
+      // 마감 전에 폼을 열어 두고 채운 사람도 여기서 막힌다.
+      if (isRecruitmentClosed()) {
+        setRecruitmentClosed(true);
+        return 'closed';
+      }
+
       const sajuInput = toSajuInput(draft);
 
       if (!sajuInput) {
-        return false;
+        return 'invalid';
       }
 
       const nextChart = calculateSaju(sajuInput);
       setChart(nextChart);
 
       void saveSubmission(draft, nextChart, honeypot).then((result) => {
-        setSaveFailed(!result.ok);
+        setSubmissionClosed(result.closed === true);
+        setSaveFailed(!result.ok && result.closed !== true);
       });
 
       goToScreen('loading');
-      return true;
+      return 'ok';
     },
     [draft, goToScreen],
   );
@@ -164,6 +210,7 @@ export default function Home() {
     setGenderPicked(false);
     setChart(null);
     setSaveFailed(false);
+    setSubmissionClosed(false);
     goToScreen('intro', 'replace');
   };
 
@@ -171,7 +218,10 @@ export default function Home() {
     <main className="min-h-dvh bg-[#090d1c] text-white">
       <section className="mx-auto min-h-dvh w-full max-w-[450px] overflow-hidden bg-[#0b1024] shadow-[0_0_70px_rgb(3_7_18/55%)] sm:rounded-[28px]">
         {screen === 'intro' && (
-          <HeroScreen onStart={() => goToScreen('name')} />
+          <HeroScreen
+            closed={recruitmentClosed}
+            onStart={() => goToScreen('name')}
+          />
         )}
 
         {screen === 'result' && chart && (
@@ -180,6 +230,7 @@ export default function Home() {
             draft={draft}
             onRestart={restart}
             saveFailed={saveFailed}
+            submissionClosed={submissionClosed}
           />
         )}
 
@@ -241,7 +292,14 @@ function getPreviousScreen(screen: FlowScreen): FlowScreen {
   return currentIndex > 0 ? FORM_STEPS[currentIndex - 1] : 'intro';
 }
 
-function HeroScreen({ onStart }: { onStart: () => void }) {
+function HeroScreen({
+  closed,
+  onStart,
+}: {
+  /** 모집이 끝났으면 신청 버튼을 막고 매칭 공지 시각을 안내한다. */
+  closed: boolean;
+  onStart: () => void;
+}) {
   return (
     <div className="relative flex min-h-dvh flex-col">
       <img
@@ -315,22 +373,36 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
           type="button"
           size="lg"
           onClick={onStart}
-          className="h-14 w-full rounded-[8px] border border-white/55 bg-[linear-gradient(90deg,#d9e7ff,#ffffff_48%,#dbe8ff)] text-[1rem] font-extrabold text-[#101b35] shadow-[0_16px_36px_rgb(9_17_42/50%),inset_0_0_0_1px_rgb(255_255_255/60%)] hover:brightness-105"
+          disabled={closed}
+          className="h-14 w-full rounded-[8px] border border-white/55 bg-[linear-gradient(90deg,#d9e7ff,#ffffff_48%,#dbe8ff)] text-[1rem] font-extrabold text-[#101b35] shadow-[0_16px_36px_rgb(9_17_42/50%),inset_0_0_0_1px_rgb(255_255_255/60%)] hover:brightness-105 disabled:opacity-70"
         >
-          <Sparkles className="size-5" data-icon="inline-start" />
-          {HERO_COPY.cta}
+          {closed ? (
+            RECRUITMENT_CLOSED_COPY.cta
+          ) : (
+            <>
+              <Sparkles className="size-5" data-icon="inline-start" />
+              {HERO_COPY.cta}
+            </>
+          )}
         </Button>
-        <div className="mt-3 flex items-center justify-center gap-4 text-[0.76rem] font-medium text-[#c4d2f2]">
-          <span className="inline-flex items-center gap-1.5">
-            <MoonStar className="size-3.5" />
-            {HERO_FOOTER_POINTS[0]}
-          </span>
-          <span className="h-3 w-px bg-white/20" />
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarDays className="size-3.5" />
-            {HERO_FOOTER_POINTS[1]}
-          </span>
-        </div>
+        {/* 마감 뒤에는 같은 자리에 공지 시각을 적는다. 줄 높이가 같아 하단 영역이 커지지 않는다. */}
+        {closed ? (
+          <p className="mt-3 text-center text-[0.76rem] font-semibold text-[#f0d7a8]">
+            {RECRUITMENT_CLOSED_COPY.heroNote}
+          </p>
+        ) : (
+          <div className="mt-3 flex items-center justify-center gap-4 text-[0.76rem] font-medium text-[#c4d2f2]">
+            <span className="inline-flex items-center gap-1.5">
+              <MoonStar className="size-3.5" />
+              {HERO_FOOTER_POINTS[0]}
+            </span>
+            <span className="h-3 w-px bg-white/20" />
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              {HERO_FOOTER_POINTS[1]}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -424,8 +496,8 @@ function BirthInfoForm({
   onDraftChange: (draft: SubmissionDraft) => void;
   onGenderPicked: () => void;
   onStepChange: (screen: FlowScreen, mode?: 'push' | 'replace') => void;
-  /** 마지막 단계에서 부른다. 입력이 온전하지 않으면 false 를 돌려준다. */
-  onSubmit: (honeypot: string) => boolean;
+  /** 마지막 단계에서 부른다. 입력이 온전하지 않으면 'invalid', 마감이면 'closed'. */
+  onSubmit: (honeypot: string) => 'ok' | 'invalid' | 'closed';
   screen: Exclude<FlowScreen, 'intro' | 'result'>;
 }) {
   const [error, setError] = useState<{
@@ -514,6 +586,18 @@ function BirthInfoForm({
         return DETAIL_ERROR_MESSAGES.instagramFormat;
       }
 
+      if (!isValidStudentId(draft.studentId)) {
+        return DETAIL_ERROR_MESSAGES.studentIdFormat;
+      }
+
+      if (!draft.refundBank) {
+        return DETAIL_ERROR_MESSAGES.refundBankRequired;
+      }
+
+      if (!isValidAccountNumber(draft.refundAccount)) {
+        return DETAIL_ERROR_MESSAGES.refundAccountFormat;
+      }
+
       return draft.consentAgreed ? null : CONSENT_COPY.error;
     }
 
@@ -533,7 +617,11 @@ function BirthInfoForm({
       return;
     }
 
-    if (!onSubmit(honeypot)) {
+    const outcome = onSubmit(honeypot);
+
+    if (outcome === 'closed') {
+      setError({ message: RECRUITMENT_CLOSED_COPY.formError, screen });
+    } else if (outcome === 'invalid') {
       setError({ message: DETAIL_ERROR_MESSAGES.birthdayNotReal, screen });
     }
   };
@@ -761,6 +849,70 @@ function BirthInfoForm({
           )}
 
           {screen === 'instagram' && (
+            <div className="refund-fields">
+              <FieldBlock label={FIELD_COPY.studentId.label}>
+                <input
+                  inputMode="numeric"
+                  value={draft.studentId}
+                  onChange={(event) =>
+                    update({
+                      studentId: event.target.value
+                        .replace(/[^0-9-]/g, '')
+                        .slice(0, FIELD_COPY.studentId.maxLength),
+                    })
+                  }
+                  placeholder={FIELD_COPY.studentId.placeholder}
+                  aria-label={FIELD_COPY.studentId.ariaLabel}
+                  className="form-line-input"
+                />
+              </FieldBlock>
+
+              <FieldBlock
+                label={FIELD_COPY.refund.label}
+                helper={FIELD_COPY.refund.helper}
+              >
+                <div className="refund-account-row">
+                  <select
+                    value={draft.refundBank}
+                    onChange={(event) =>
+                      update({
+                        refundBank: event.target
+                          .value as SubmissionDraft['refundBank'],
+                      })
+                    }
+                    aria-label={FIELD_COPY.refund.bankAriaLabel}
+                    className="form-line-input refund-bank-select"
+                  >
+                    <option value="" disabled>
+                      {FIELD_COPY.refund.bankPlaceholder}
+                    </option>
+                    {REFUND_BANKS.map((bank) => (
+                      <option key={bank} value={bank}>
+                        {bank}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={draft.refundAccount}
+                    onChange={(event) =>
+                      update({
+                        refundAccount: event.target.value
+                          .replace(/[^0-9-]/g, '')
+                          .slice(0, FIELD_COPY.refund.accountMaxLength),
+                      })
+                    }
+                    placeholder={FIELD_COPY.refund.accountPlaceholder}
+                    aria-label={FIELD_COPY.refund.accountAriaLabel}
+                    className="form-line-input"
+                  />
+                </div>
+              </FieldBlock>
+            </div>
+          )}
+
+          {screen === 'instagram' && (
             <ConsentBlock
               agreed={draft.consentAgreed}
               onToggle={() => update({ consentAgreed: !draft.consentAgreed })}
@@ -800,13 +952,76 @@ function ResultScreen({
   draft,
   onRestart,
   saveFailed,
+  submissionClosed,
 }: {
   chart: SajuChart;
   draft: SubmissionDraft;
   onRestart: () => void;
   saveFailed: boolean;
+  /** 서버가 마감으로 신청을 거절했으면, 접수된 것처럼 보이지 않게 한다. */
+  submissionClosed: boolean;
 }) {
   const [requested, setRequested] = useState(false);
+  // 재접속 안내는 한 번만 띄운다. 닫은 뒤 다시 스크롤해도 또 뜨지 않는다.
+  const [revisitOpen, setRevisitOpen] = useState(false);
+  const revisitShown = useRef(false);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const revisitConfirmRef = useRef<HTMLButtonElement>(null);
+
+  // 저장에 실패했거나 마감으로 거절된 사람은 매칭 대상이 아니므로 안내하지 않는다.
+  const revisitEligible = !saveFailed && !submissionClosed;
+
+  const showRevisitNotice = useCallback(() => {
+    if (revisitShown.current) {
+      return;
+    }
+
+    revisitShown.current = true;
+    setRevisitOpen(true);
+  }, []);
+
+  // 풀이를 끝까지 내려 하단 영역이 보이면 "다 읽었다" 고 보고 안내를 띄운다.
+  useEffect(() => {
+    const target = ctaRef.current;
+
+    if (!target || !revisitEligible) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          showRevisitNotice();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.35 },
+    );
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [revisitEligible, showRevisitNotice]);
+
+  // 열리면 확인 버튼으로 초점을 옮기고, Esc 로도 닫을 수 있게 한다.
+  useEffect(() => {
+    if (!revisitOpen) {
+      return;
+    }
+
+    revisitConfirmRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setRevisitOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [revisitOpen]);
+
   const topics = useMemo(
     () => buildLoveReading(chart, draft.name),
     [chart, draft.name],
@@ -871,11 +1086,17 @@ function ResultScreen({
           <LoveTopics topics={topics} />
         </section>
 
-        <div className="result-cta">
+        <div ref={ctaRef} className="result-cta">
           <Button
             type="button"
-            disabled={requested}
-            onClick={() => setRequested(true)}
+            disabled={requested || submissionClosed}
+            onClick={() => {
+              setRequested(true);
+
+              if (revisitEligible) {
+                showRevisitNotice();
+              }
+            }}
             className="next-button w-full bg-[linear-gradient(90deg,#f0d7a8,#fff6e2_52%,#efd6a6)] font-extrabold text-[#2a1a16] hover:brightness-105 disabled:opacity-100"
           >
             <Heart className="size-5" data-icon="inline-start" />
@@ -884,12 +1105,16 @@ function ResultScreen({
 
           {requested ? (
             <p className="result-cta-note result-cta-done">
-              신청이 접수되었습니다. 연분이 준비되면
-              {handle ? ` 인스타그램 @${handle} 으로 ` : ' 인스타그램으로 '}
-              연락드립니다.
+              {RESULT_COPY.cta.done}
             </p>
           ) : (
             <p className="result-cta-note">{RESULT_COPY.cta.note}</p>
+          )}
+
+          {submissionClosed && (
+            <p className="result-cta-warning">
+              {RECRUITMENT_CLOSED_COPY.resultNotice}
+            </p>
           )}
 
           {saveFailed && (
@@ -906,6 +1131,42 @@ function ResultScreen({
           </button>
         </div>
       </div>
+
+      {revisitOpen && revisitEligible && (
+        <div className="revisit-overlay">
+          <div
+            aria-hidden="true"
+            className="revisit-scrim"
+            onClick={() => setRevisitOpen(false)}
+          />
+          {/*
+            네이티브 dialog 를 열린 상태로 그린다. 가운데 정렬·흐린 배경·Esc 처리는
+            위의 오버레이와 효과가 맡으므로 showModal 을 쓰지 않는다.
+          */}
+          <dialog
+            open
+            aria-labelledby="revisit-title"
+            aria-describedby="revisit-message"
+            className="revisit-card"
+          >
+            <MoonStar className="revisit-icon" aria-hidden="true" />
+            <p id="revisit-title" className="revisit-title">
+              {MATCH_REVISIT_COPY.title}
+            </p>
+            <p id="revisit-message" className="revisit-message">
+              {MATCH_REVISIT_COPY.message}
+            </p>
+            <Button
+              ref={revisitConfirmRef}
+              type="button"
+              onClick={() => setRevisitOpen(false)}
+              className="next-button mt-5 w-full bg-[linear-gradient(90deg,#f0d7a8,#fff6e2_52%,#efd6a6)] font-extrabold text-[#2a1a16] hover:brightness-105"
+            >
+              {MATCH_REVISIT_COPY.confirmLabel}
+            </Button>
+          </dialog>
+        </div>
+      )}
     </div>
   );
 }

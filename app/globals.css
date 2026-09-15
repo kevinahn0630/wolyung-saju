@@ -537,6 +537,38 @@ body {
   gap: 0.55rem;
 }
 
+/* 인스타그램 단계의 학번·환불 계좌 */
+
+.refund-fields {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.refund-account-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.refund-account-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.refund-bank-select {
+  flex: 0 0 8.4rem;
+  width: auto;
+  appearance: none;
+  cursor: pointer;
+  /* 펼친 목록도 어두운 바탕으로 뜨게 한다. */
+  color-scheme: dark;
+}
+
+.refund-bank-select:invalid,
+.refund-bank-select option[value=''] {
+  color: rgb(255 255 255 / 0.58);
+}
+
 .form-field-helper {
   color: rgb(206 221 252 / 0.62);
   font-size: 0.8rem;
@@ -1035,6 +1067,98 @@ body {
   white-space: nowrap;
   backdrop-filter: blur(6px);
   box-shadow: 0 8px 22px rgb(3 7 18 / 0.4);
+}
+
+/* 풀이를 다 본 뒤 화면 가운데 뜨는 재접속 안내 */
+
+.revisit-overlay {
+  position: fixed;
+  inset: 0;
+  /* 결과 화면 하단 고정 영역과 문의 패널보다 위에 뜬다. */
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.revisit-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(2 5 16 / 0.62);
+  backdrop-filter: blur(3px);
+  animation: revisit-fade 200ms ease-out both;
+}
+
+.revisit-card {
+  /* 브라우저 기본 dialog 스타일(흰 배경, 테두리, 자동 여백, 절대 위치)을 걷어 낸다. */
+  inset: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  color: inherit;
+  position: relative;
+  width: min(21rem, 100%);
+  border: 1px solid rgb(240 215 168 / 0.45);
+  border-radius: 16px;
+  background: rgb(7 11 24 / 0.96);
+  box-shadow:
+    0 24px 60px rgb(2 5 16 / 0.6),
+    0 0 36px rgb(240 215 168 / 0.12);
+  padding: 1.5rem 1.25rem 1.25rem;
+  text-align: center;
+  animation: revisit-pop 260ms cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+.revisit-icon {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 0.6rem;
+  color: #f0d7a8;
+}
+
+.revisit-title {
+  color: rgb(240 215 168 / 0.85);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.revisit-message {
+  margin-top: 0.55rem;
+  color: #fff6e2;
+  font-size: 1.12rem;
+  font-weight: 850;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+@keyframes revisit-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes revisit-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revisit-scrim,
+  .revisit-card {
+    animation: none;
+  }
 }
 
 /* 모집 마감과 매칭 공지 일정 */

@@ -48,9 +48,48 @@ export type SubmissionDraft = {
   department: string;
   /** @ 없이 저장한다. */
   instagram: string;
+  /** 학번. 숫자와 하이픈만 받는다. */
+  studentId: string;
+  /** 환불받을 은행. 고르기 전에는 빈 문자열. */
+  refundBank: RefundBank | '';
+  /** 환불 계좌번호. 화면에서는 하이픈을 허용하고, 저장할 때 숫자만 남긴다. */
+  refundAccount: string;
   /** 개인정보 수집·이용 동의. 체크하지 않으면 제출할 수 없다. */
   consentAgreed: boolean;
 };
+
+/**
+ * 환불받을 은행.
+ *
+ * 은행 이름을 그대로 저장한다. 서버도 이 목록에 있는 이름만 받는다.
+ * 은행을 더하려면 여기에 한 줄 더하면 된다.
+ */
+export const REFUND_BANKS = [
+  'KB국민은행',
+  '신한은행',
+  '우리은행',
+  '하나은행',
+  'NH농협은행',
+  'IBK기업은행',
+  '카카오뱅크',
+  '토스뱅크',
+  '케이뱅크',
+  'SC제일은행',
+  '우체국',
+  '새마을금고',
+  '신협',
+  '수협은행',
+  'iM뱅크(대구은행)',
+  '부산은행',
+  '경남은행',
+  '광주은행',
+  '전북은행',
+  '제주은행',
+  '한국씨티은행',
+  'KDB산업은행',
+] as const;
+
+export type RefundBank = (typeof REFUND_BANKS)[number];
 
 export const HERO_COPY = {
   /**
@@ -79,6 +118,38 @@ export const RECRUITMENT_SCHEDULE = [
   { label: '모집 마감', value: '9/17(목) 23:59' },
   { label: '매칭 공지', value: '9/18(금) 12:00' },
 ] as const;
+
+/**
+ * 모집이 닫히는 순간. 9/17(목) 23:59 까지 받으므로 9/18 00:00(KST) 부터 닫는다.
+ *
+ * 서버가 이 값으로 신청을 거절하고, 화면은 같은 값으로 버튼을 막는다. 사용자
+ * 기기 시계가 틀려도 서버 판정이 기준이다. 일정을 바꾸면 위 문구와 함께 고친다.
+ */
+export const RECRUITMENT_CLOSES_AT = Date.parse('2026-09-18T00:00:00+09:00');
+
+export function isRecruitmentClosed(now: number = Date.now()): boolean {
+  return now >= RECRUITMENT_CLOSES_AT;
+}
+
+export const RECRUITMENT_CLOSED_COPY = {
+  cta: '모집이 마감되었습니다',
+  heroNote: '매칭 결과는 9/18(금) 12:00 에 공지합니다.',
+  formError: '모집이 마감되어 신청을 받지 않습니다.',
+  resultNotice:
+    '모집이 마감되어 신청이 접수되지 않았습니다. 풀이는 그대로 보실 수 있습니다.',
+} as const;
+
+/**
+ * 연애운 풀이를 다 본 사람에게 화면 가운데 띄우는 안내.
+ *
+ * 매칭 결과는 공지 시각에 사이트에 다시 들어와야 볼 수 있다는 점을 놓치지 않게 한다.
+ * 공지 시각이 바뀌면 RECRUITMENT_SCHEDULE 과 함께 고친다.
+ */
+export const MATCH_REVISIT_COPY = {
+  title: '매칭 결과 안내',
+  message: '9/18 12:00에 재접속하셔야 매칭결과 확인가능해요!',
+  confirmLabel: '확인했어요',
+} as const;
 
 export const READING_POINTS = [
   '사주 기반 궁합',
@@ -141,6 +212,21 @@ export const FIELD_COPY = {
     maxLength: 30,
     helper: '연분이 닿으면 이 아이디로 서로를 이어 드립니다.',
   },
+  studentId: {
+    label: '학번',
+    placeholder: '학번을 입력해 주세요. (예: 2023123456)',
+    ariaLabel: '학번',
+    maxLength: 15,
+  },
+  refund: {
+    label: '환불 계좌',
+    bankPlaceholder: '은행 선택',
+    bankAriaLabel: '환불받을 은행',
+    accountPlaceholder: '계좌번호 (숫자만)',
+    accountAriaLabel: '환불 계좌번호',
+    accountMaxLength: 20,
+    helper: '환불할 때만 쓰고, 환불이 끝나면 바로 파기합니다.',
+  },
   calendar: {
     solarLabel: '양력',
     lunarLabel: '음력',
@@ -171,7 +257,9 @@ export const RESULT_COPY = {
   },
   cta: {
     label: '운명의 상대 찾기',
-    note: '입력하신 정보는 매칭에만 씁니다.',
+    note: '입력하신 정보는 매칭과 환불 처리에만 씁니다.',
+    /** 운명의 상대 찾기를 누른 뒤. 가운데 뜨는 재접속 안내와 같은 말을 한다. */
+    done: '신청이 접수되었습니다. 9/18(금) 12:00 에 다시 접속하시면 매칭 결과를 확인하실 수 있어요.',
   },
   disclaimer:
     '사주 풀이는 재미로 보는 참고 자료입니다. 중요한 결정은 스스로 내려 주세요.',
@@ -198,6 +286,9 @@ export const DETAIL_ERROR_MESSAGES = {
   birthTimeRange: '00:00 부터 23:59 사이로 입력해 주세요.',
   departmentRequired: '학과를 입력해 주세요.',
   instagramFormat: '영문·숫자·마침표·밑줄만 쓸 수 있습니다.',
+  studentIdFormat: '학번을 숫자로 입력해 주세요.',
+  refundBankRequired: '환불받을 은행을 선택해 주세요.',
+  refundAccountFormat: '계좌번호를 10~16자리 숫자로 입력해 주세요.',
 } as const;
 
 /** 저장된 코드값을 화면에 보여 줄 이름으로 바꾼다. */

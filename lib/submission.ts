@@ -21,6 +21,25 @@ export function isValidInstagram(raw: string): boolean {
   return INSTAGRAM_PATTERN.test(normalizeInstagram(raw));
 }
 
+/** 학번: 숫자와 하이픈, 숫자는 5자리 이상. 학교마다 형식이 달라 넉넉하게 받는다. */
+export function isValidStudentId(raw: string): boolean {
+  const trimmed = raw.trim();
+
+  return (
+    /^[0-9-]{5,15}$/.test(trimmed) && trimmed.replace(/-/g, '').length >= 5
+  );
+}
+
+/** 계좌번호는 하이픈과 공백을 걷어 내고 숫자만 남긴다. */
+export function normalizeAccountNumber(raw: string): string {
+  return raw.replace(/[^0-9]/g, '');
+}
+
+/** 국내 은행 계좌번호는 대체로 10~14자리이고, 일부는 16자리까지 있다. */
+export function isValidAccountNumber(raw: string): boolean {
+  return /^[0-9]{10,16}$/.test(normalizeAccountNumber(raw));
+}
+
 /** 'YYYY.MM.DD' 를 실제로 존재하는 날짜인지까지 확인하며 쪼갠다. */
 export function parseBirthday(
   birthday: string,
@@ -102,6 +121,10 @@ export type SubmissionPayload = {
   university: SubmissionDraft['university'];
   department: string;
   instagram: string;
+  studentId: string;
+  refundBank: SubmissionDraft['refundBank'];
+  /** 숫자만. */
+  refundAccount: string;
   consentAgreed: boolean;
   consentVersion: string;
   /**
@@ -142,6 +165,9 @@ export function toSubmissionPayload(
     university: draft.university,
     department: draft.department.trim(),
     instagram: normalizeInstagram(draft.instagram),
+    studentId: draft.studentId.trim(),
+    refundBank: draft.refundBank,
+    refundAccount: normalizeAccountNumber(draft.refundAccount),
     consentAgreed: draft.consentAgreed,
     consentVersion: CONSENT_VERSION,
     website: honeypot,
@@ -162,7 +188,7 @@ export async function saveSubmission(
   draft: SubmissionDraft,
   chart: SajuChart,
   honeypot = '',
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; closed?: boolean; error?: string }> {
   try {
     const response = await fetch('/api/submissions', {
       method: 'POST',
@@ -171,7 +197,16 @@ export async function saveSubmission(
     });
 
     if (!response.ok) {
-      return { ok: false, error: `서버 응답 ${response.status}` };
+      // 마감 뒤 요청은 서버가 403 과 closed 로 거절한다. 일반 실패와 안내를 달리한다.
+      const payload = (await response.json().catch(() => null)) as {
+        closed?: unknown;
+      } | null;
+
+      return {
+        ok: false,
+        closed: response.status === 403 && payload?.closed === true,
+        error: `서버 응답 ${response.status}`,
+      };
     }
 
     return { ok: true };

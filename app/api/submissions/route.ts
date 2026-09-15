@@ -15,7 +15,11 @@
 import { env } from 'cloudflare:workers';
 
 import { CONSENT_VERSION } from '@/lib/consent';
-import { UNIVERSITIES } from '@/lib/wolyung-flow';
+import {
+  REFUND_BANKS,
+  UNIVERSITIES,
+  isRecruitmentClosed,
+} from '@/lib/wolyung-flow';
 
 /** vite.config.ts 가 `.openai/hosting.json` 의 `d1` 값으로 만드는 바인딩 이름. */
 const D1_BINDING = 'DB';
@@ -55,7 +59,10 @@ const CREATE_SUBMISSIONS_SQL =
   'consent_version TEXT, ' +
   'consent_agreed_at TEXT, ' +
   'university TEXT, ' +
-  'department TEXT)';
+  'department TEXT, ' +
+  'student_id TEXT, ' +
+  'refund_bank TEXT, ' +
+  'refund_account TEXT)';
 
 const CREATE_ATTEMPTS_SQL =
   'CREATE TABLE IF NOT EXISTS submission_attempts (' +
@@ -78,6 +85,9 @@ const LATER_COLUMNS: readonly { name: string; definition: string }[] = [
   { name: 'consent_agreed_at', definition: 'TEXT' },
   { name: 'university', definition: 'TEXT' },
   { name: 'department', definition: 'TEXT' },
+  { name: 'student_id', definition: 'TEXT' },
+  { name: 'refund_bank', definition: 'TEXT' },
+  { name: 'refund_account', definition: 'TEXT' },
 ];
 
 /** 받는 학교. 화면과 어긋나지 않도록 화면이 쓰는 표에서 그대로 만든다. */
@@ -85,13 +95,17 @@ const ALLOWED_UNIVERSITIES: ReadonlySet<string> = new Set(
   UNIVERSITIES.map((item) => item.value),
 );
 
+/** 받는 환불 은행. 화면이 쓰는 목록에서 그대로 만든다. */
+const ALLOWED_REFUND_BANKS: ReadonlySet<string> = new Set(REFUND_BANKS);
+
 const UPSERT_SQL = `
 INSERT INTO submissions (
   id, instagram_key, created_at, updated_at, name, birth_date, calendar_type,
   birth_time, hour_known, gender, instagram,
   year_pillar, month_pillar, day_pillar, hour_pillar, element_counts,
-  consent_version, consent_agreed_at, university, department
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  consent_version, consent_agreed_at, university, department,
+  student_id, refund_bank, refund_account
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(instagram_key) DO UPDATE SET
   updated_at = excluded.updated_at,
   name = excluded.name,
@@ -109,7 +123,10 @@ ON CONFLICT(instagram_key) DO UPDATE SET
   consent_version = excluded.consent_version,
   consent_agreed_at = excluded.consent_agreed_at,
   university = excluded.university,
-  department = excluded.department`;
+  department = excluded.department,
+  student_id = excluded.student_id,
+  refund_bank = excluded.refund_bank,
+  refund_account = excluded.refund_account`;
 
 /** 스키마 준비는 아이솔레이트마다 한 번만 한다. */
 let schemaReady: Promise<void> | null = null;
@@ -213,6 +230,10 @@ type IncomingBody = {
   university?: unknown;
   department?: unknown;
   instagram?: unknown;
+  studentId?: unknown;
+  refundBank?: unknown;
+  /** 숫자만 받는다. 화면이 하이픈을 걷어 내고 보낸다. */
+  refundAccount?: unknown;
   consentAgreed?: unknown;
   consentVersion?: unknown;
   /** 사람에게는 보이지 않는 미끼 항목. 채워져 오면 봇이다. */
@@ -236,6 +257,15 @@ function asTrimmedString(value: unknown, maxLength: number): string | null {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  // 마감 판정은 서버 시계로 한다. 화면이 막지 못한 요청(열어 둔 탭, 기기 시계
+  // 오차, 직접 보낸 요청)도 여기서 걸러진다. 저장이나 제출 횟수 기록보다 먼저 본다.
+  if (isRecruitmentClosed()) {
+    return Response.json(
+      { ok: false, closed: true, error: '모집이 마감되었습니다.' },
+      { status: 403 },
+    );
+  }
+
   const database = getDatabase();
 
   if (!database) {
@@ -287,6 +317,17 @@ export async function POST(request: Request): Promise<Response> {
       ? body.university
       : null;
   const department = asTrimmedString(body.department, 30);
+  const studentId = asTrimmedString(body.studentId, 15);
+  const refundBank =
+    typeof body.refundBank === 'string' &&
+    ALLOWED_REFUND_BANKS.has(body.refundBank)
+      ? body.refundBank
+      : null;
+  const refundAccount =
+    typeof body.refundAccount === 'string' &&
+    /^[0-9]{10,16}$/.test(body.refundAccount)
+      ? body.refundAccount
+      : null;
   const yearPillar = asTrimmedString(body.pillars?.year, 4);
   const monthPillar = asTrimmedString(body.pillars?.month, 4);
   const dayPillar = asTrimmedString(body.pillars?.day, 4);
@@ -299,6 +340,10 @@ export async function POST(request: Request): Promise<Response> {
     !calendarType ||
     !university ||
     !department ||
+    !studentId ||
+    !refundBank ||
+    !refundAccount ||
+    !/^[0-9-]{5,15}$/.test(studentId) ||
     !yearPillar ||
     !monthPillar ||
     !dayPillar ||
@@ -354,6 +399,9 @@ export async function POST(request: Request): Promise<Response> {
         now,
         university,
         department,
+        studentId,
+        refundBank,
+        refundAccount,
       )
       .run();
 
