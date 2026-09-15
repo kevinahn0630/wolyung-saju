@@ -1,6 +1,6 @@
 # 월영아씨 사주 소개팅
 
-연고대 에브리타임 홍보를 염두에 둔 사주 기반 소개팅 MVP 프론트 프로토타입입니다.
+서울권 대학생을 대상으로 한 사주 기반 소개팅 MVP 프론트 프로토타입입니다.
 현재 버전은 랜딩 → 스텝형 입력 → 사주 기반 연애운 풀이까지 동작하고, 신청서는 Cloudflare D1 에 저장됩니다. 실제 매칭과 사진 업로드, 결제는 아직 연결되어 있지 않습니다.
 
 ## 데모
@@ -128,7 +128,8 @@ npx wrangler d1 execute wolyung-saju --remote --config dist/server/wrangler.json
 `.openai/hosting.json` 의 `"d1"` 값이 바인딩 이름이 됩니다. 현재 `"DB"` 로 켜 두었습니다.
 
 - 스키마: `migrations/` 아래 번호순으로 쌓입니다. 현재 0003 까지입니다.
-- 학교는 화면 문구가 아니라 코드값(`yonsei` / `korea`)으로 저장합니다. 나중에 학교로 매칭을 걸 때 표기가 흔들리지 않게 하려는 것입니다. 늘리려면 `lib/wolyung-flow.ts` 의 `UNIVERSITIES` 와 `app/api/submissions/route.ts` 의 `ALLOWED_UNIVERSITIES` 를 같이 고치세요.
+- 받는 학교는 서울대·연세대·고려대·서강대·성균관대·한양대·이화여대 일곱 곳입니다.
+- 학교는 화면 문구가 아니라 코드값(`snu` / `yonsei` / `korea` / `sogang` / `skku` / `hanyang` / `ewha`)으로 저장합니다. 나중에 학교로 매칭을 걸 때 표기가 흔들리지 않게 하려는 것입니다. 늘리려면 `lib/wolyung-flow.ts` 의 `UNIVERSITIES` 에 한 줄 더하면 됩니다. 서버 허용 목록도 이 표에서 만들어집니다.
 - 로컬 개발에서는 API 라우트가 같은 스키마를 `CREATE TABLE IF NOT EXISTS` 로 만들어 두므로 따로 마이그레이션을 돌리지 않아도 됩니다.
 - 배포 환경에는 `wrangler d1 migrations apply` 로 적용해야 합니다. 자세한 건 위 배포 항목에 있습니다.
 - 같은 인스타그램 아이디로 다시 제출하면 기존 행을 덮어씁니다.

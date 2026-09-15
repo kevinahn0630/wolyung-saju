@@ -1037,9 +1037,61 @@ body {
   box-shadow: 0 8px 22px rgb(3 7 18 / 0.4);
 }
 
+/* 모집 마감과 매칭 공지 일정 */
+
+.hero-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 0.65rem;
+  border: 1px solid rgb(240 215 168 / 0.38);
+  border-radius: 10px;
+  background: rgb(9 14 30 / 0.55);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 26px rgb(3 7 18 / 0.35);
+}
+
+.hero-schedule-item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+}
+
+.hero-schedule-item + .hero-schedule-item {
+  border-left: 1px solid rgb(240 215 168 / 0.22);
+}
+
+.hero-schedule-item dt {
+  color: rgb(240 215 168 / 0.78);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.hero-schedule-item dd {
+  color: #fff6e2;
+  font-size: 0.94rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* ------------------------------------------------------------------ *
  * 재학중인 대학교와 학과
  * ------------------------------------------------------------------ */
+
+/* 학교가 일곱 곳이라 성별처럼 두 칸으로 두면 네 줄이 되어 학과 입력칸이 밀린다. */
+.university-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.university-grid .gender-button {
+  height: 2.7rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
 
 .university-helper {
   margin-top: 0.7rem;

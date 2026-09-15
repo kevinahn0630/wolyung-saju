@@ -15,6 +15,7 @@
 import { env } from 'cloudflare:workers';
 
 import { CONSENT_VERSION } from '@/lib/consent';
+import { UNIVERSITIES } from '@/lib/wolyung-flow';
 
 /** vite.config.ts 가 `.openai/hosting.json` 의 `d1` 값으로 만드는 바인딩 이름. */
 const D1_BINDING = 'DB';
@@ -79,8 +80,10 @@ const LATER_COLUMNS: readonly { name: string; definition: string }[] = [
   { name: 'department', definition: 'TEXT' },
 ];
 
-/** 받는 학교. 화면의 UNIVERSITIES 와 같은 코드값이어야 한다. */
-const ALLOWED_UNIVERSITIES = new Set(['yonsei', 'korea']);
+/** 받는 학교. 화면과 어긋나지 않도록 화면이 쓰는 표에서 그대로 만든다. */
+const ALLOWED_UNIVERSITIES: ReadonlySet<string> = new Set(
+  UNIVERSITIES.map((item) => item.value),
+);
 
 const UPSERT_SQL = `
 INSERT INTO submissions (

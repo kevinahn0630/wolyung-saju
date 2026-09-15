@@ -34,6 +34,7 @@ import {
   HERO_COPY,
   HERO_FOOTER_POINTS,
   READING_POINTS,
+  RECRUITMENT_SCHEDULE,
   RESULT_COPY,
   UNIVERSITIES,
   getErrorMessage,
@@ -242,7 +243,7 @@ function getPreviousScreen(screen: FlowScreen): FlowScreen {
 
 function HeroScreen({ onStart }: { onStart: () => void }) {
   return (
-    <div className="relative min-h-dvh">
+    <div className="relative flex min-h-dvh flex-col">
       <img
         src="/astrology-woman.png"
         alt={HERO_COPY.imageAlt}
@@ -268,7 +269,11 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
         <ContactMenu />
       </header>
 
-      <div className="relative z-10 flex min-h-dvh flex-col justify-end px-5 pb-[104px] pt-24">
+      {/*
+        헤더 아래 남은 높이만 차지해야 화면 높이에 맞게 바닥에 붙는다. 여기에 min-h-dvh 를
+        주면 헤더만큼 화면보다 길어져, 아래 내용이 하단 고정 CTA 영역(약 136px)에 가린다.
+      */}
+      <div className="relative z-10 flex flex-1 flex-col justify-end px-5 pb-[150px] pt-24">
         <div className="mb-6 text-center">
           <p className="hero-audience-badge">{HERO_COPY.audienceBadge}</p>
           <p className="mb-2 text-[1.28rem] font-semibold tracking-[0.06em] text-[#f9f5ea] [text-shadow:0_3px_15px_rgb(0_0_0/70%)]">
@@ -283,6 +288,15 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
             {HERO_COPY.description[1]}
           </p>
         </div>
+
+        <dl className="hero-schedule">
+          {RECRUITMENT_SCHEDULE.map((item) => (
+            <div key={item.label} className="hero-schedule-item">
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
 
         <div className="grid grid-cols-3 gap-2.5">
           {READING_POINTS.map((point) => (
@@ -683,7 +697,7 @@ function BirthInfoForm({
                 <legend className="gender-legend">
                   {FIELD_COPY.university.label}
                 </legend>
-                <div className="gender-grid">
+                <div className="university-grid">
                   {UNIVERSITIES.map((item) => (
                     <PickerButton
                       key={item.value}

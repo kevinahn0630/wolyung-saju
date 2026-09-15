@@ -16,13 +16,19 @@ export type Direction = 'forward' | 'backward';
 /**
  * 받는 학교.
  *
- * 연고대 에브리타임에 홍보하는 서비스라 두 곳만 받는다. 화면 문구가 아니라
- * 코드값을 저장하는 것은, 나중에 학교로 매칭을 걸 때 표기가 흔들리지 않게
- * 하려는 것이다. 학교를 늘리려면 이 표에 한 줄 더하면 된다.
+ * 서울권 대학 일곱 곳을 받는다. 화면 문구가 아니라 코드값을 저장하는 것은,
+ * 나중에 학교로 매칭을 걸 때 표기가 흔들리지 않게 하려는 것이다. 이미 저장된
+ * 행이 있으므로 기존 코드값은 바꾸지 않는다. 학교를 늘리려면 이 표에 한 줄
+ * 더하면 되고, 서버 허용 목록도 이 표에서 만들어진다.
  */
 export const UNIVERSITIES = [
+  { value: 'snu', label: '서울대' },
   { value: 'yonsei', label: '연세대' },
   { value: 'korea', label: '고려대' },
+  { value: 'sogang', label: '서강대' },
+  { value: 'skku', label: '성균관대' },
+  { value: 'hanyang', label: '한양대' },
+  { value: 'ewha', label: '이화여대' },
 ] as const;
 
 export type University = (typeof UNIVERSITIES)[number]['value'] | '';
@@ -50,10 +56,10 @@ export const HERO_COPY = {
   /**
    * 첫 화면에서 가장 먼저 읽히는 줄.
    *
-   * 연고대 에브리타임에 올리는 홍보물이라, 받는 학교를 첫 줄에 박아 두어야
-   * 자기 얘기로 읽힌다. 받는 학교가 바뀌면 UNIVERSITIES 와 함께 고친다.
+   * 받는 대상을 첫 줄에 박아 두어야 자기 얘기로 읽힌다. 받는 학교가 바뀌면
+   * UNIVERSITIES 와 함께 고친다.
    */
-  audienceBadge: '연세대 · 고려대 재학생 전용',
+  audienceBadge: '서울권 대학생 전용',
   brand: '월영아씨',
   logoMark: '月影',
   logoText: '월영당',
@@ -63,6 +69,16 @@ export const HERO_COPY = {
   description: ['왠지 끌리는 사람에게는', '이유가 있습니다'],
   cta: '내 연분 확인하기',
 } as const;
+
+/**
+ * 첫 화면의 모집 일정.
+ *
+ * 날짜가 바뀌면 이 표만 고치면 된다. 요일은 직접 적어 두었으니 날짜와 함께 맞춘다.
+ */
+export const RECRUITMENT_SCHEDULE = [
+  { label: '모집 마감', value: '9/17(목) 23:59' },
+  { label: '매칭 공지', value: '9/18(금) 12:00' },
+] as const;
 
 export const READING_POINTS = [
   '사주 기반 궁합',
@@ -109,7 +125,7 @@ export const FIELD_COPY = {
   },
   university: {
     label: '재학중인 대학교',
-    helper: '지금은 연세대와 고려대에서만 받고 있습니다.',
+    helper: '지금은 위 일곱 개 학교에서만 받고 있습니다.',
   },
   department: {
     label: '학과',
