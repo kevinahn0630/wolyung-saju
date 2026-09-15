@@ -16,7 +16,7 @@ export type Direction = 'forward' | 'backward';
 /**
  * 받는 학교.
  *
- * 서울권 대학 일곱 곳을 받는다. 화면 문구가 아니라 코드값을 저장하는 것은,
+ * 서울권 대학 아홉 곳을 받는다. 화면 문구가 아니라 코드값을 저장하는 것은,
  * 나중에 학교로 매칭을 걸 때 표기가 흔들리지 않게 하려는 것이다. 이미 저장된
  * 행이 있으므로 기존 코드값은 바꾸지 않는다. 학교를 늘리려면 이 표에 한 줄
  * 더하면 되고, 서버 허용 목록도 이 표에서 만들어진다.
@@ -29,6 +29,8 @@ export const UNIVERSITIES = [
   { value: 'skku', label: '성균관대' },
   { value: 'hanyang', label: '한양대' },
   { value: 'ewha', label: '이화여대' },
+  { value: 'sungshin', label: '성신여대' },
+  { value: 'sookmyung', label: '숙명여대' },
 ] as const;
 
 export type University = (typeof UNIVERSITIES)[number]['value'] | '';
@@ -201,7 +203,7 @@ export const FIELD_COPY = {
   },
   university: {
     label: '재학중인 대학교',
-    helper: '지금은 위 일곱 개 학교에서만 받고 있습니다.',
+    helper: '지금은 위 아홉 개 학교에서만 받고 있습니다.',
   },
   department: {
     label: '학과',
