@@ -129,8 +129,8 @@ npx wrangler d1 execute wolyung-saju --remote --config dist/server/wrangler.json
 
 - 스키마: `migrations/` 아래 번호순으로 쌓입니다. 현재 0004 까지입니다.
 - 학번(`student_id`), 환불 은행(`refund_bank`), 환불 계좌번호(`refund_account`)를 인스타그램 아이디 단계에서 받습니다. 은행은 `lib/wolyung-flow.ts` 의 `REFUND_BANKS` 목록에 있는 이름만 받고, 계좌번호는 하이픈을 걷어 낸 숫자만 저장합니다. 이 열이 생기기 전 신청서는 비어 있습니다.
-- 받는 학교는 서울대·연세대·고려대·서강대·성균관대·한양대·이화여대·성신여대·숙명여대 아홉 곳입니다.
-- 학교는 화면 문구가 아니라 코드값(`snu` / `yonsei` / `korea` / `sogang` / `skku` / `hanyang` / `ewha` / `sungshin` / `sookmyung`)으로 저장합니다. 나중에 학교로 매칭을 걸 때 표기가 흔들리지 않게 하려는 것입니다. 늘리려면 `lib/wolyung-flow.ts` 의 `UNIVERSITIES` 에 한 줄 더하면 됩니다. 서버 허용 목록도 이 표에서 만들어집니다.
+- 받는 학교는 서울대·연세대·고려대·서강대·성균관대·한양대·이화여대 일곱 곳입니다.
+- 학교는 화면 문구가 아니라 코드값(`snu` / `yonsei` / `korea` / `sogang` / `skku` / `hanyang` / `ewha`)으로 저장합니다. 나중에 학교로 매칭을 걸 때 표기가 흔들리지 않게 하려는 것입니다. 늘리려면 `lib/wolyung-flow.ts` 의 `UNIVERSITIES` 에 한 줄 더하면 됩니다. 서버 허용 목록도 이 표에서 만들어집니다.
 - 로컬 개발에서는 API 라우트가 같은 스키마를 `CREATE TABLE IF NOT EXISTS` 로 만들어 두므로 따로 마이그레이션을 돌리지 않아도 됩니다.
 - 배포 환경에는 `wrangler d1 migrations apply` 로 적용해야 합니다. 자세한 건 위 배포 항목에 있습니다.
 - 같은 인스타그램 아이디로 다시 제출하면 기존 행을 덮어씁니다.
